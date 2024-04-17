@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  trb-trb-auth:
+    container_name: trb-auth
+    build: ./
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "8089:8080"
+    env_file: 
+      - .env
