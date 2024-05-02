@@ -16,17 +16,38 @@ public class HomeController : Controller
         _httpClientFactory = httpClientFactory;
     }
 
-    public IActionResult Index()
+    public IActionResult Index(string? app = null)
+    {
+        if (!Request.Cookies.ContainsKey("auth-token")) return View();
+
+        var token = Request.Cookies["auth-token"];
+        return Redirect(app == "client"
+            ? $"trust-bank-client://sign-in/{token}"
+            : $"trust-bank://sign-in/{token}");
+    }
+
+    public IActionResult Logout()
     {
         return View();
     }
 
-    public async Task<IActionResult> Login(Credentials credentials)
+    public IActionResult PerformLogout(string? app)
+    {
+        Response.Cookies.Delete("auth-token");
+        return Redirect(app == "client"
+            ? "trust-bank-client://logout"
+            : "trust-bank://logout");
+    }
+
+    public async Task<IActionResult> Login(Credentials credentials, string? app)
     {
         try
         {
             var token = await GetSignInToken(credentials);
-            return Redirect($"trust-bank://sign-in/{token}");
+            Response.Cookies.Append("auth-token", token);
+            return Redirect(app == "client"
+                ? $"trust-bank-client://sign-in/{token}"
+                : $"trust-bank://sign-in/{token}");
         }
         catch (Exception e)
         {
@@ -34,7 +55,7 @@ public class HomeController : Controller
             return Unauthorized();
         }
     }
-    
+
     private async Task<string> GetSignInToken(Credentials credentials)
     {
         var httpClient = _httpClientFactory.CreateClient(Constants.UserHttpClient);
@@ -46,7 +67,7 @@ public class HomeController : Controller
         var userId = await response.Content.ReadFromJsonAsync<string>();
         if (userId == null)
             throw new Exception("IdentUser FAILED: userId == null");
-        
+
         var user = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(credentials.Email);
         return await FirebaseAuth.DefaultInstance.CreateCustomTokenAsync(user.Uid);
     }
