@@ -1,7 +1,9 @@
 ﻿using Confluent.Kafka;
 using FirebaseAdmin.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using trb_auth.Common;
+using trb_auth.Models;
 
 namespace trb_auth.Services;
 
@@ -56,14 +58,23 @@ public class TransactionHandler : BackgroundService
 
     private async Task HandleMessage(string message)
     {
-        var devices = await _context.Devices.ToListAsync();
+        var parsedMessage = JsonConvert.DeserializeObject<KafkaMessage>(message);
+
+        if (parsedMessage == null)
+            return;
+
+        var devices = await _context.Devices
+            .Where(device => device.App != "client" || device.UserId == parsedMessage.Transaction.PayerAccountId ||
+                             device.UserId == parsedMessage.Transaction.PayeeAccountId)
+            .ToListAsync();
 
         var cloudMessage = new MulticastMessage
         {
             Notification = new Notification
             {
-                Body = message,
-                Title = "Hello World!"
+                Title = $"New Transaction: {parsedMessage.State}",
+                Body =
+                    $"{parsedMessage.Transaction.Type} {parsedMessage.Transaction.Amount} {parsedMessage.Transaction.Currency}"
             },
             Tokens = devices.ConvertAll(device => device.DeviceId)
         };
