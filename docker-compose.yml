@@ -4,9 +4,21 @@ services:
   trb-trb-auth:
     container_name: trb-auth
     build: ./
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "8086:8080"
-    env_file: 
+    env_file:
       - .env
+  trb-auth-db:
+    container_name: trb-auth-db
+    image: postgres:15
+    environment:
+      POSTGRES_DB: trb-auth
+      POSTGRES_USER: trb-auth
+      POSTGRES_PASSWORD: trb-auth
+    ports:
+      - "5436:5432"
+    volumes:
+      - trb-auth-db:/var/lib/postgresql/data
+
+volumes:
+  trb-auth-db: { }

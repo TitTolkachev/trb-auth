@@ -2,7 +2,7 @@
 
 <div class="vh-100 d-flex justify-content-center align-items-center">
     <div class="text-center">
-        <form asp-action="Login" asp-route-app="@Context.Request.Query["app"]">
+        <form asp-action="Login" asp-route-app="@Context.Request.Query["app"]" asp-route-deviceId="@Context.Request.Query["deviceId"]">
             <h2>Login</h2>
 
             <div class="mb-3 text-start">

@@ -1,8 +1,10 @@
 using System.Net;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
+using trb_auth;
 using trb_auth.Common;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,7 +59,18 @@ builder.Services
             builder.AddTimeout(TimeSpan.FromSeconds(10));
         });
 
+// DB
+var connection = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connection));
+
+// -----------------------------------------------------------------------------------------------------
+
 var app = builder.Build();
+
+// Auto Migration
+using var serviceScope = app.Services.CreateScope();
+var context = serviceScope.ServiceProvider.GetService<ApplicationDbContext>();
+context?.Database.Migrate();
 
 app.UseStaticFiles();
 

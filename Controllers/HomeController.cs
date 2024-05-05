@@ -1,6 +1,8 @@
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using trb_auth.Common;
+using trb_auth.Entities;
 using trb_auth.Models;
 
 namespace trb_auth.Controllers;
@@ -9,11 +11,14 @@ public class HomeController : Controller
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<HomeController> _logger;
+    private readonly ApplicationDbContext _context;
 
-    public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory)
+    public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory,
+        ApplicationDbContext context)
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _context = context;
     }
 
     public IActionResult Index(string? app = null)
@@ -31,19 +36,27 @@ public class HomeController : Controller
         return View();
     }
 
-    public IActionResult PerformLogout(string? app)
+    public async Task<IActionResult> PerformLogout(string? app, string? deviceId)
     {
+        var entity = await _context.Devices.FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.App == app);
+        if (entity != null)
+        {
+            _context.Devices.Remove(entity);
+            await _context.SaveChangesAsync();
+        }
+
         Response.Cookies.Delete("auth-token");
+
         return Redirect(app == "client"
             ? "trust-bank-client://logout"
             : "trust-bank://logout");
     }
 
-    public async Task<IActionResult> Login(Credentials credentials, string? app)
+    public async Task<IActionResult> Login(Credentials credentials, string? app, string? deviceId)
     {
         try
         {
-            var token = await GetSignInToken(credentials);
+            var token = await GetSignInToken(credentials, app, deviceId);
             Response.Cookies.Append("auth-token", token);
             return Redirect(app == "client"
                 ? $"trust-bank-client://sign-in/{token}"
@@ -56,7 +69,7 @@ public class HomeController : Controller
         }
     }
 
-    private async Task<string> GetSignInToken(Credentials credentials)
+    private async Task<string> GetSignInToken(Credentials credentials, string? app, string? deviceId)
     {
         var httpClient = _httpClientFactory.CreateClient(Constants.UserHttpClient);
         var response = await httpClient.PostAsJsonAsync("users/ident-user", credentials);
@@ -69,6 +82,30 @@ public class HomeController : Controller
             throw new Exception("IdentUser FAILED: userId == null");
 
         var user = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(credentials.Email);
+
+        if (deviceId != null)
+        {
+            await SaveDeviceId(deviceId, userId, app);
+        }
+
         return await FirebaseAuth.DefaultInstance.CreateCustomTokenAsync(user.Uid);
+    }
+
+    private async Task SaveDeviceId(string deviceId, string userId, string? app)
+    {
+        _logger.LogInformation("deviceId: {Response}", deviceId);
+        _logger.LogInformation("userId: {Response}", userId);
+        _logger.LogInformation("app: {Response}", app);
+
+        await _context.Devices.AddAsync(new Device
+        {
+            Id = Guid.NewGuid(),
+            DeviceId = deviceId,
+            UserId = userId,
+            App = app
+        });
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Device: {@Response}", await _context.Devices.ToListAsync());
     }
 }
