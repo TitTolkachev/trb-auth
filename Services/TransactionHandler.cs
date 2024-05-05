@@ -11,12 +11,15 @@ public class TransactionHandler : BackgroundService
 {
     private readonly ILogger<TransactionHandler> _logger;
     private readonly ApplicationDbContext _context;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public TransactionHandler(ILogger<TransactionHandler> logger, ApplicationDbContext context)
+    public TransactionHandler(ILogger<TransactionHandler> logger, ApplicationDbContext context,
+        IHttpClientFactory httpClientFactory)
     {
         Console.WriteLine("TransactionHandler Init");
         _logger = logger;
         _context = context;
+        _httpClientFactory = httpClientFactory;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -63,10 +66,15 @@ public class TransactionHandler : BackgroundService
         if (parsedMessage == null)
             return;
 
+        var payerId = await GetUserId(parsedMessage.Transaction.PayerAccountId);
+        var payeeId = await GetUserId(parsedMessage.Transaction.PayeeAccountId);
+
         var devices = await _context.Devices
-            .Where(device => device.App != "client" || device.UserId == parsedMessage.Transaction.PayerAccountId ||
-                             device.UserId == parsedMessage.Transaction.PayeeAccountId)
+            .Where(device => device.App != "client" || device.UserId == payerId || device.UserId == payeeId)
             .ToListAsync();
+
+        if (devices.Count == 0)
+            return;
 
         var cloudMessage = new MulticastMessage
         {
@@ -80,5 +88,22 @@ public class TransactionHandler : BackgroundService
         };
 
         await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(cloudMessage);
+    }
+
+    private async Task<string?> GetUserId(string? accountId)
+    {
+        var httpClient = _httpClientFactory.CreateClient(Constants.CoreHttpClient);
+
+        var response = await httpClient.GetAsync($"accounts/{accountId}");
+
+        if (!response.IsSuccessStatusCode)
+            _logger.LogInformation("GetAccountInfo FAILED: {Response}", response.ToString());
+        response.EnsureSuccessStatusCode();
+
+        var account = await response.Content.ReadFromJsonAsync<Account>();
+        if (account == null)
+            throw new Exception("GetAccountInfo FAILED: account == null");
+
+        return account.ExternalClientId;
     }
 }
