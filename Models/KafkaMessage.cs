@@ -2,5 +2,5 @@
 
 public record KafkaMessage(
     string State,
-    Transaction Transaction
+    Transaction? Transaction
 );

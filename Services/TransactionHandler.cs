@@ -66,8 +66,8 @@ public class TransactionHandler : BackgroundService
         if (parsedMessage == null)
             return;
 
-        var payerId = await GetUserId(parsedMessage.Transaction.PayerAccountId);
-        var payeeId = await GetUserId(parsedMessage.Transaction.PayeeAccountId);
+        var payerId = await GetUserId(parsedMessage.Transaction?.PayerAccountId);
+        var payeeId = await GetUserId(parsedMessage.Transaction?.PayeeAccountId);
 
         var devices = await _context.Devices
             .Where(device => device.App != "client" || device.UserId == payerId || device.UserId == payeeId)
@@ -76,13 +76,17 @@ public class TransactionHandler : BackgroundService
         if (devices.Count == 0)
             return;
 
+        var title = $"New Transaction: {parsedMessage.State}";
+        var body = parsedMessage.Transaction == null
+            ? ""
+            : $"{parsedMessage.Transaction.Type} {parsedMessage.Transaction.Amount} {parsedMessage.Transaction.Currency}";
+
         var cloudMessage = new MulticastMessage
         {
             Notification = new Notification
             {
-                Title = $"New Transaction: {parsedMessage.State}",
-                Body =
-                    $"{parsedMessage.Transaction.Type} {parsedMessage.Transaction.Amount} {parsedMessage.Transaction.Currency}"
+                Title = title,
+                Body = body
             },
             Tokens = devices.ConvertAll(device => device.DeviceId)
         };
