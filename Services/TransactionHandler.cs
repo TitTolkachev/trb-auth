@@ -57,18 +57,17 @@ public class TransactionHandler : BackgroundService
     private async Task HandleMessage(string message)
     {
         var devices = await _context.Devices.ToListAsync();
+
         var cloudMessage = new MulticastMessage
         {
-            Data = new Dictionary<string, string>
+            Notification = new Notification
             {
-                { "transaction", message }
+                Body = message,
+                Title = "Hello World!"
             },
             Tokens = devices.ConvertAll(device => device.DeviceId)
         };
-        var result = await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(cloudMessage);
-        foreach (var resultResponse in result.Responses)
-        {
-            _logger.LogInformation("Result: {Result}", resultResponse.Exception);
-        }
+
+        await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(cloudMessage);
     }
 }
