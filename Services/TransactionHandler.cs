@@ -65,6 +65,7 @@ public class TransactionHandler : BackgroundService
             },
             Tokens = devices.ConvertAll(device => device.DeviceId)
         };
-        await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(cloudMessage);
+        var result = await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(cloudMessage);
+        _logger.LogInformation("Result: {Result}", result.Responses.ToString());
     }
 }
