@@ -93,10 +93,6 @@ public class HomeController : Controller
 
     private async Task SaveDeviceId(string deviceId, string userId, string? app)
     {
-        _logger.LogInformation("deviceId: {Response}", deviceId);
-        _logger.LogInformation("userId: {Response}", userId);
-        _logger.LogInformation("app: {Response}", app);
-
         await _context.Devices.AddAsync(new Device
         {
             Id = Guid.NewGuid(),
@@ -105,7 +101,5 @@ public class HomeController : Controller
             App = app
         });
         await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Device: {@Response}", await _context.Devices.ToListAsync());
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using trb_auth;
 using trb_auth.Common;
+using trb_auth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,8 @@ builder.Services
             // See: https://www.pollydocs.org/strategies/timeout.html
             builder.AddTimeout(TimeSpan.FromSeconds(10));
         });
+
+builder.Services.AddHostedService<TransactionHandler>();
 
 // DB
 var connection = builder.Configuration.GetConnectionString("DefaultConnection");
