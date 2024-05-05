@@ -97,13 +97,13 @@ public class TransactionHandler : BackgroundService
         var response = await httpClient.GetAsync($"accounts/{accountId}");
 
         if (!response.IsSuccessStatusCode)
+        {
             _logger.LogInformation("GetAccountInfo FAILED: {Response}", response.ToString());
-        response.EnsureSuccessStatusCode();
+            return null;
+        }
 
         var account = await response.Content.ReadFromJsonAsync<Account>();
-        if (account == null)
-            throw new Exception("GetAccountInfo FAILED: account == null");
 
-        return account.ExternalClientId;
+        return account?.ExternalClientId;
     }
 }
