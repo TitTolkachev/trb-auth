@@ -75,6 +75,6 @@ app.UseRouting();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{app?}");
+    pattern: "{controller=Home}/{action=Index}/{app?}/{deviceId?}");
 
 app.Run();
