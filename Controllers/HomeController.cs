@@ -21,19 +21,11 @@ public class HomeController : Controller
         _context = context;
     }
 
-    public async Task<IActionResult> Index(string? app = null, string? deviceId = null)
+    public IActionResult Index(string? app = null)
     {
         if (!Request.Cookies.ContainsKey("auth-token")) return View();
 
         var token = Request.Cookies["auth-token"];
-        var decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
-        decoded.Claims.TryGetValue("id", out var userId);
-
-        if (deviceId != null && userId != null)
-        {
-            await SaveDeviceId(deviceId, userId.ToString(), app);
-        }
-
         return Redirect(app == "client"
             ? $"trust-bank-client://sign-in/{token}"
             : $"trust-bank://sign-in/{token}");
@@ -99,7 +91,7 @@ public class HomeController : Controller
         return await FirebaseAuth.DefaultInstance.CreateCustomTokenAsync(user.Uid);
     }
 
-    private async Task SaveDeviceId(string deviceId, string? userId, string? app)
+    private async Task SaveDeviceId(string deviceId, string userId, string? app)
     {
         await _context.Devices.AddAsync(new Device
         {
