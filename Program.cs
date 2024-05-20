@@ -1,4 +1,3 @@
-using System.Net;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
@@ -31,33 +30,12 @@ builder.Services
         "CustomPipeline",
         static builder =>
         {
-            // See: https://www.pollydocs.org/strategies/retry.html
             builder.AddRetry(new HttpRetryStrategyOptions
             {
-                // Customize and configure the retry logic.
                 BackoffType = DelayBackoffType.Constant,
-                MaxRetryAttempts = 10,
+                MaxRetryAttempts = 50,
                 UseJitter = true
             });
-
-            // See: https://www.pollydocs.org/strategies/circuit-breaker.html
-            builder.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
-            {
-                // Customize and configure the circuit breaker logic.
-                SamplingDuration = TimeSpan.FromSeconds(30),
-                FailureRatio = 0.7,
-                MinimumThroughput = 10,
-                ShouldHandle = static args => ValueTask.FromResult(args is
-                {
-                    Outcome.Result.StatusCode:
-                    HttpStatusCode.RequestTimeout or
-                    HttpStatusCode.TooManyRequests or
-                    HttpStatusCode.InternalServerError
-                })
-            });
-
-            // See: https://www.pollydocs.org/strategies/timeout.html
-            builder.AddTimeout(TimeSpan.FromSeconds(10));
         });
 
 builder.Services
@@ -68,33 +46,12 @@ builder.Services
         "CustomPipeline",
         static builder =>
         {
-            // See: https://www.pollydocs.org/strategies/retry.html
             builder.AddRetry(new HttpRetryStrategyOptions
             {
-                // Customize and configure the retry logic.
                 BackoffType = DelayBackoffType.Constant,
-                MaxRetryAttempts = 10,
+                MaxRetryAttempts = 50,
                 UseJitter = true
             });
-
-            // See: https://www.pollydocs.org/strategies/circuit-breaker.html
-            builder.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
-            {
-                // Customize and configure the circuit breaker logic.
-                SamplingDuration = TimeSpan.FromSeconds(30),
-                FailureRatio = 0.7,
-                MinimumThroughput = 10,
-                ShouldHandle = static args => ValueTask.FromResult(args is
-                {
-                    Outcome.Result.StatusCode:
-                    HttpStatusCode.RequestTimeout or
-                    HttpStatusCode.TooManyRequests or
-                    HttpStatusCode.InternalServerError
-                })
-            });
-
-            // See: https://www.pollydocs.org/strategies/timeout.html
-            builder.AddTimeout(TimeSpan.FromSeconds(10));
         });
 
 builder.Services.AddHostedService<TransactionHandler>();
